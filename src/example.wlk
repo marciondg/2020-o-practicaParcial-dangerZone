@@ -19,44 +19,56 @@ class Empleado {
 	
 	method subordinadoPuedeUsar(habilidad)=	subordinados.any({subordinado=>subordinado.puedeUsarHabilidad(habilidad)})
 	
-	method cumplirMision(mision) = self.reuneHabilidadesParaMision(mision)
+	/*method cumplirMision(mision){
+		if(self.reuneHabilidadesParaMision(mision))
+		{
+			self.recibirDanio(mision)
+			self.finalizarMision(mision)
+		}
+		else
+			self.error("No puede cumplir la mision")
+		}
+	Le paso la responsabilidad a la mision*/
 	
-	method reuneHabilidadesParaMision(mision) = mision.habilidadesRequeridas().all({habilidad=>self.puedeUsarHabilidad(habilidad)})
+	//method reuneHabilidadesParaMision(mision) = mision.habilidadesRequeridas().all({habilidad=>self.puedeUsarHabilidad(habilidad)})
+	//Rompo el encapsulamiento de mision, al pedirle sus habilidades, no está bueno.
 	
-	method recibirDanio(mision){
-		if(self.cumplirMision(mision))
-			self.perderVida(mision.peligrosidad())
-	}
-	method perderVida(cantidad){
+	method recibirDanio(cantidad){
 		salud-=cantidad
 	}
 	method finalizarMision(mision){
-		if(salud > 0)
-			misionesCompletadas.add(mision)
-			rol.beneficio(self,mision)
+		if(self.sobrevivio())
+			self.completarMision(self)
 		}
-
+	method sobrevivio() = salud>0
+	
+	method completarMision(mision){
+		misionesCompletadas.add(mision)
+		rol.recompensaMision(self,mision)
+	}
+	method aprenderHabilidad(habilidad){
+		habilidades.add(habilidad)
+	}
 }
 
 //"Roles"
 object espia{
 	method saludCritica() = 15
-	method aprenderHabilidad(habilidad,empleado){
-		empleado.habilidades().add(habilidad)
-	}
-	method beneficio(empleado,mision){
-		const habilidadesMision = mision.habilidadesRequeridas()
-		habilidadesMision.forEach({hab=>self.aprenderHabilidad(hab,empleado)})
+
+	method recompensaMision(empleado,mision){
+		/*const habilidadesMision = mision.habilidadesRequeridas()
+		habilidadesMision.forEach({hab=>empleado.aprenderHabilidad(hab)}) Estoy rompiendo encapsulamiento*/
+		mision.enseniarHabilidades(empleado) 
 	}
 }
 
 class Oficinista{
 	var property estrellas = 0
 	method saludCritica() = 40-5*estrellas
-	method beneficio(empleado,mision){
+	method recompensaMision(empleado,mision){
 		self.ganarEstrella()
 		if(estrellas==3)
-			empleado.rol(espia)
+			empleado.rol(espia) //Acoplamiento. 
 	}
 	method ganarEstrella(){
 		estrellas +=1		
@@ -66,18 +78,43 @@ class Oficinista{
 class Equipo{
 	const integrantes = []
 	
-	method puedeHacer(mision) = integrantes.any({integrante=>integrante.cumplirMision(mision)})
-	method cumplirMision(mision){
-		if(self.puedeHacer(mision))
+	//method puedeHacer(mision) = integrantes.any({integrante=>integrante.cumplirMision(mision)})
+	/*method cumplirMision(mision){
+		if(self.puedeHacer(mision)){
 			self.recibirDanio(mision)
+			self.finalizarMision(mision)
 		}
-	method recibirDanio(mision){
-			integrantes.forEach({integrante=>integrante.perderVida(mision.peligrosidad()/3)})
+		else
+			self.error("No pueden cumplir con mision")
 	}
-	method finalizarMision(mision)
+	Se repite logica con Empleado, pasar responsabilidad a la mision*/
+	method puedeUsarHabilidad(habilidad) = integrantes.any({integrante=>integrante.puedeUsarHabilidad(habilidad)})
+	
+	method recibirDanio(cantidad){
+			integrantes.forEach({integrante=>integrante.recibirDanio(cantidad/3)})
+	}
+	method finalizarMision(mision){
+		integrantes.forEach({integrante=>integrante.finalizarMision(mision)})
+	}
 }
 
 class Mision{
 	const habilidadesRequeridas = []
 	const property peligrosidad
+	method cumplidaPor(asignado){
+		if(self.puedeRealizarsePor(asignado))
+		{asignado.recibirDanio(peligrosidad)
+		 asignado.finalizarMision(self)
+		}
+		else
+			self.error("La mision no puede ser realizada")
+	}
+	method puedeRealizarsePor(asignado)= habilidadesRequeridas.all({habilidad=>asignado.puedeUsarHabilidad(habilidad)})
+	method enseniarHabilidades(asignado){
+		//habilidadesRequeridas.forEach({hab=>empleado.aprenderHabilidad(hab)}) 
+		//COMO ES UN SET LAS HABILIDADES DE UN EMPLEADO, NO SE VAN A DUPLICAR. 
+		//PERO ES MEJOR QUE LO PASEMOS FILTRADO. LA CLASE MISION NO TIENE POR QUÉ SABER QUE EL EMPLEADO TIENE UN SET
+		self.habilidadesQueNoPosee(asignado).forEach({hab=>asignado.aprenderHabilidad(hab)})
+	}
+	method habilidadesQueNoPosee(asignado) = habilidadesRequeridas.filter({hab=>!asignado.tieneHabilidad(hab)})
 }
