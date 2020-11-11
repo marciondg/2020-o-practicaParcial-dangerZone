@@ -2,7 +2,6 @@
 class Empleado {
 	const rol
 	var property salud
-	var property estrellas
 	const habilidades = #{}
 	const subordinados = []
 	const misionesCompletadas = []
