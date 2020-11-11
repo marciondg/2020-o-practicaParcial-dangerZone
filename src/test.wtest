@@ -1,0 +1,18 @@
+import example.*
+describe "Empleados y Jefes"{
+	const marcio = new Empleado(rol=new Espia(),habilidades=["codear","lloraditaPreParcial"], salud=100)
+	const topy = new Empleado(rol=new Espia(),habilidades=["magia"], salud=500)
+	const nacho = new Empleado(rol=new Espia(),habilidades=["codear"], salud=100, subordinados=[marcio,topy])
+test "Un empleado puede usar habilidad si la tiene y no esta incapacitado" {
+	assert.that(marcio.puedeUsarHabilidad("codear"))
+}
+test "Un jefe puede usar habilidad si un subordinado la puede usar" {
+	assert.that(nacho.puedeUsarHabilidad("codear"))
+}
+test "Un empleado es jefe si tiene gente a cargo"{
+	assert.that(nacho.esJefe())
+}
+test "Un empleado no es jefe si no tiene gente a cargo"{
+	assert.notThat(marcio.esJefe())
+}
+}
